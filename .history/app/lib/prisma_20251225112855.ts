@@ -1,0 +1,575 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  email      String     @unique
+  phone      String?
+  firstName  String
+  lastName   String
+  password   String
+  avatar     String?
+  role       UserRole   @default(CUSTOMER)
+  isActive   Boolean    @default(false)
+  isVerified Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  auditLogs  AuditLog[]
+  orders     Order[]
+  wishlists  Wishlist[]
+  sessions   Session[]
+
+  @@map("users")
+}
+
+model Brand {
+  id            String          @id @default(cuid())
+  brandName     String          @unique
+  currency      String?
+  domain        String?         @unique
+  slug          String          @unique
+  logo          String
+  description   String
+  website       String
+  contact       String
+  tagline       String?
+  color         String?
+  categoryName  String
+  isPrimary     Boolean         @default(false)
+  isActive      Boolean         @default(false)
+  isFeature     Boolean         @default(false)
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  brandBankings BrandBanking?
+  brandContacts BrandContacts[]
+  brandTerms    BrandTerms?
+  integrations  Integration[]
+  orders        Order[]
+  settlements   Settlements[]
+  vouchers      Vouchers[]
+}
+
+model BrandContacts {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  email     String
+  phone     String
+  notes     String?
+  isPrimary Boolean  @default(false)
+  brandId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model BrandTerms {
+  id                String           @id @default(cuid())
+  settlementTrigger SettlementStatus @default(onRedemption)
+  commissionType    CommissionStatus @default(Percentage)
+  commissionValue   Float            @default(0)
+  maxDiscount       Int?             @default(0)
+  minOrderValue     Int?             @default(0)
+  currency          String           @default("USD")
+  breakagePolicy    String?
+  breakageShare     Int?             @default(0)
+  contractStart     DateTime?
+  contractEnd       DateTime?
+  goLiveDate        DateTime?
+  renewContract     Boolean          @default(false)
+  vatRate           Float?           @default(0)
+  internalNotes     String?
+  brandId           String           @unique
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  brand             Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model BrandBanking {
+  id                  String                    @id @default(cuid())
+  settlementFrequency SettlementFrequencyStatus @default(monthly)
+  dayOfMonth          Int?
+  payoutMethod        PayoutMethodStatus        @default(EFT)
+  invoiceRequired     Boolean                   @default(false)
+  remittanceEmail     String?
+  accountHolder       String
+  accountNumber       String
+  branchCode          String
+  bankName            String
+  swiftCode           String?
+  country             String
+  accountVerification Boolean                   @default(false)
+  brandId             String                    @unique
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  brand               Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id             String               @id @default(cuid())
+  platform       String?
+  storeUrl       String?
+  storeName      String?
+  apiKey         String?
+  apiSecret      String?
+  accessToken    String?
+  consumerKey    String?
+  consumerSecret String?
+  isActive       Boolean              @default(true)
+  lastSyncAt     DateTime?
+  syncStatus     SyncStatus?
+  syncMessage    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  brandId        String
+  brand          Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  syncLogs       IntegrationSyncLog[]
+}
+
+model IntegrationSyncLog {
+  id            String      @id @default(cuid())
+  integrationId String
+  syncType      String
+  status        SyncStatus
+  itemsSynced   Int         @default(0)
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+}
+
+model Denomination {
+  id          String    @id @default(cuid())
+  voucherId   String
+  value       Int
+  currency    String    @default("USD")
+  displayName String?
+  isExpiry    Boolean
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  voucher     Vouchers  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@index([voucherId])
+  @@index([voucherId, isActive])
+  @@map("denominations")
+}
+
+model Vouchers {
+  id                   String             @id @default(cuid())
+  denominationType     DenominationStatus @default(fixed)
+  denominationCurrency String             @default("USD")
+  denominationValue    Int?
+  maxAmount            Int?
+  minAmount            Int?
+  expiresAt            DateTime?
+  expiryValue          String?
+  graceDays            Int?               @default(0)
+  redemptionChannels   Json?
+  partialRedemption    Boolean            @default(false)
+  stackable            Boolean            @default(false)
+  maxUserPerDay        Int?
+  termsConditionsURL   String?
+  productSku           String?
+  isActive             Boolean            @default(true)
+  brandId              String
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  isExpiry             Boolean            @default(false)
+  expiryPolicy         String?
+  voucherCodes         VoucherCode[]
+  denominations        Denomination[]
+  brand                Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@map("vouchers")
+}
+
+model VoucherCode {
+  id                      String              @id @default(cuid())
+  code                    String              @unique
+  orderId                 String
+  voucherId               String
+  shopifyGiftCardId       String?             @unique
+  shopifyShop             String?
+  shopifySyncError        String?
+  shopifySyncedAt         DateTime?
+  isRedeemed              Boolean             @default(false)
+  redeemedAt              DateTime?
+  originalValue           Int
+  remainingValue          Int
+  expiresAt               DateTime?
+  pin                     String?
+  qrCode                  String?
+  tokenizedLink           String?
+  linkExpiresAt           DateTime?
+  lastSyncedRedeemedValue String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  deliveryLogs            DeliveryLog[]
+  order                   Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  giftCard                GiftCard?           @relation(fields: [shopifyGiftCardId], references: [id])
+  voucher                 Vouchers            @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  redemptions             VoucherRedemption[]
+
+  @@index([orderId])
+  @@index([voucherId])
+}
+
+model VoucherRedemption {
+  id             String      @id @default(cuid())
+  voucherCodeId  String
+  amountRedeemed Int
+  balanceAfter   Int
+  redeemedAt     DateTime    @default(now())
+  transactionId  String?
+  storeUrl       String?
+  voucherCode    VoucherCode @relation(fields: [voucherCodeId], references: [id], onDelete: Cascade)
+
+  @@index([voucherCodeId])
+}
+
+model Occasion {
+  id                 String             @id @default(cuid())
+  name               String             @unique
+  emoji              String?
+  description        String
+  image              String?
+  type               String
+  isActive           Boolean            @default(true)
+  displayOrder       Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  occasionCategories OccasionCategory[]
+  orders             Order[]
+}
+
+model OccasionCategory {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String
+  emoji        String?
+  image        String?
+  category     String
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  occasionId   String
+  occasion     Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+  orders       Order[]
+}
+
+model CustomCard {
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  name         String   @unique
+  description  String
+  emoji        String?
+  image        String?
+  category     String
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+model ReceiverDetail {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Order {
+  id               String               @id @default(cuid())
+  orderNumber      String               @unique
+  brandId          String
+  occasionId       String
+  subCategoryId    String?
+  customCardId     String?
+  userId           String
+  bulkOrderNumber  String?
+  receiverDetailId String
+  amount           Int
+  quantity         Int                  @default(1)
+  subtotal         Int
+  discount         Int                  @default(0)
+  totalAmount      Int
+  currency         String               @default("USD")
+  message          String?
+  customImageUrl   String?
+  customVideoUrl   String?
+  senderName       String?
+  senderEmail      String?
+  deliveryMethod   DeliveryMethodStatus @default(whatsapp)
+  sendType         SendStatus           @default(sendImmediately)
+  scheduledFor     DateTime?
+  paymentMethod    String?
+  paymentStatus    PaymentStatus        @default(PENDING)
+  paymentIntentId  String?
+  paidAt           DateTime?
+  redemptionStatus RedemptionStatus     @default(Issued)
+  redeemedAt       DateTime?
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  deliveryLogs     DeliveryLog[]
+  brand            Brand                @relation(fields: [brandId], references: [id])
+  occasion         Occasion             @relation(fields: [occasionId], references: [id])
+  receiverDetail   ReceiverDetail       @relation(fields: [receiverDetailId], references: [id])
+  occasionCategory OccasionCategory?    @relation(fields: [subCategoryId], references: [id])
+  user             User                 @relation(fields: [userId], references: [id])
+  voucherCodes     VoucherCode[]
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([orderNumber])
+  @@index([paymentStatus])
+}
+
+model DeliveryLog {
+  id            String               @id @default(cuid())
+  orderId       String
+  voucherCodeId String?
+  method        DeliveryMethodStatus
+  recipient     String
+  status        DeliveryStatus       @default(PENDING)
+  attemptCount  Int                  @default(0)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  errorMessage  String?
+  messageId     String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  order         Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  voucherCode   VoucherCode?         @relation(fields: [voucherCodeId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Settlements {
+  id                String                  @id @default(cuid())
+  brandId           String
+  settlementPeriod  String
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalSold         Int
+  totalSoldAmount   Int
+  totalRedeemed     Int
+  redeemedAmount    Int
+  outstanding       Int
+  outstandingAmount Int
+  commissionAmount  Int
+  breakageAmount    Int?
+  vatAmount         Int?
+  netPayable        Int
+  remainingAmount   Int?                    @default(0)
+  status            SettlementPaymentStatus @default(Pending)
+  paidAt            DateTime?
+  paymentReference  String?
+  notes             String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  brand             Brand                   @relation(fields: [brandId], references: [id])
+
+  @@index([brandId])
+  @@index([status])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  brandId   String?
+  voucherId String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, voucherId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?
+  action    String
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model ShopifySession {
+  id          String    @id @default(cuid())
+  shop        String    @unique
+  accessToken String
+  scope       String?
+  isOnline    Boolean   @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AppInstallation {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  accessToken String
+  scopes      String
+  installedAt DateTime @default(now())
+  isActive    Boolean  @default(true)
+}
+
+model GiftCard {
+  id             String       @id @default(cuid())
+  shop           String
+  shopifyId      String?      @unique
+  code           String       @unique
+  initialValue   Float
+  balance        Float
+  customerEmail  String?
+  note           String?
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  isVirtual      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  denominationId String?
+  voucherCode    VoucherCode?
+
+  @@index([shop])
+  @@index([code])
+  @@index([customerEmail])
+  @@index([denominationId])
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  BRAND_MANAGER
+  SUPPORT
+  FINANCE
+}
+
+enum SettlementStatus {
+  onRedemption
+  onPurchase
+}
+
+enum CommissionStatus {
+  Fixed
+  Percentage
+}
+
+enum PolicyStatus {
+  Retain
+  Share
+}
+
+enum DenominationStatus {
+  fixed
+  amount
+}
+
+enum IntegrationType {
+  shopify
+  woocommerce
+  magento
+  custom_api
+  other
+}
+
+enum SyncStatus {
+  success
+  failed
+  partial
+  syncing
+  pending
+}
+
+enum PayoutMethodStatus {
+  EFT
+  wire_transfer
+  paypal
+  stripe
+  manual
+}
+
+enum SettlementFrequencyStatus {
+  daily
+  weekly
+  monthly
+  quarterly
+}
+
+enum DeliveryMethodStatus {
+  whatsapp
+  email
+  sms
+  print
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+}
+
+enum RedemptionStatus {
+  Issued
+  PartiallyRedeemed
+  Redeemed
+  Expired
+  Cancelled
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum SendStatus {
+  sendImmediately
+  scheduleLater
+}
+
+enum SettlementPaymentStatus {
+  Pending
+  Paid
+  InReview
+  Disputed
+}
+

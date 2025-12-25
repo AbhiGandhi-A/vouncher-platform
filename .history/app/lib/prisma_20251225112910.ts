@@ -2,26 +2,27 @@ import { PrismaClient } from "@prisma/client"
 import { withAccelerate } from "@prisma/extension-accelerate"
 
 /**
- * Factory function to create Prisma Client with extensions
+ * Factory to create Prisma Client (Prisma 7 compatible)
  */
-const createPrismaClient = () => {
-  return new PrismaClient().$extends(withAccelerate())
-}
+const createPrismaClient = () =>
+  new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL, // 🔴 REQUIRED
+  }).$extends(withAccelerate())
 
 /**
- * Infer the EXACT client type returned by $extends()
+ * Infer correct Prisma client type
  */
-type PrismaClientExtended = ReturnType<typeof createPrismaClient>
+type PrismaClientWithAccelerate = ReturnType<typeof createPrismaClient>
 
 /**
  * Global cache (Next.js / Vercel safe)
  */
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientExtended | undefined
+  prisma: PrismaClientWithAccelerate | undefined
 }
 
 /**
- * Export singleton Prisma client
+ * Export singleton
  */
 export const prisma =
   globalForPrisma.prisma ?? createPrismaClient()

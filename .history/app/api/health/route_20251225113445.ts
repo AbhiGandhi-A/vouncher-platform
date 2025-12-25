@@ -1,5 +1,4 @@
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic" // 🔴 THIS STOPS BUILD-TIME EXECUTION
+export const runtime = "nodejs" // 🔴 REQUIRED for Prisma
 
 import { prisma } from "@/app/lib/prisma"
 import { NextResponse } from "next/server"
