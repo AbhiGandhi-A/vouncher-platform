@@ -1,16 +1,17 @@
 import { PrismaClient } from "@prisma/client"
 import { withAccelerate } from "@prisma/extension-accelerate"
+import type { PrismaClientOptions } from "@prisma/client/runtime/library"
+
+const prismaOptions = {
+  datasourceUrl: process.env.DATABASE_URL,
+} satisfies PrismaClientOptions
 
 const createPrismaClient = () => {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set")
   }
 
-  return new PrismaClient(
-    // Prisma supports this at runtime, types lag behind
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { datasourceUrl: process.env.DATABASE_URL } as any
-  ).$extends(withAccelerate())
+  return new PrismaClient(prismaOptions).$extends(withAccelerate())
 }
 
 type PrismaAcceleratedClient = ReturnType<typeof createPrismaClient>

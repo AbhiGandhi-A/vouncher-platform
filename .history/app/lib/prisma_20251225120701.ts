@@ -6,13 +6,13 @@ const createPrismaClient = () => {
     throw new Error("DATABASE_URL is not set")
   }
 
-  return new PrismaClient(
-    // Prisma supports this at runtime, types lag behind
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { datasourceUrl: process.env.DATABASE_URL } as any
-  ).$extends(withAccelerate())
+  return new PrismaClient({
+    // TS doesn't know this, but Prisma supports it
+    datasourceUrl: process.env.DATABASE_URL,
+  } as any).$extends(withAccelerate())
 }
 
+// 🔑 Let TS infer the correct extended type
 type PrismaAcceleratedClient = ReturnType<typeof createPrismaClient>
 
 declare global {
