@@ -1,5 +1,3 @@
-export const runtime = "nodejs" // 🔴 REQUIRED for Prisma
-
 import { prisma } from "@/app/lib/prisma"
 import { NextResponse } from "next/server"
 
